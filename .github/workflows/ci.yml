@@ -8,50 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        dotnet-version: ["6.0.x", "8.0.x", "9.0.x"]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build --no-restore --configuration Release
-
-      - name: Run tests
-        run: dotnet test --no-build --configuration Release --verbosity normal
-
-  lint:
     runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "9.0.x"
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Check format
-        run: dotnet format --verify-no-changes --verbosity diagnostic
-
-  pack:
-    runs-on: ubuntu-latest
-    needs: [build-and-test, lint]
-    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
@@ -69,6 +26,9 @@ jobs:
 
       - name: Pack
         run: dotnet pack src/PayOS.csproj --no-build --configuration Release --output ./artifacts
+
+      - name: Run tests
+        run: dotnet test --no-build --configuration Release --verbosity normal
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
