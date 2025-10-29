@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1 (2025-10-29)
+
+### Documentation
+
+- **documentation**: update missing documentation file
+
 ## 2.0.0 (2025-10-29)
 
 ### Features
