@@ -198,6 +198,9 @@ public class CreatePaymentLinkResponse
     [JsonPropertyName("paymentLinkId")]
     public string PaymentLinkId { get; set; } = "";
 
+    [JsonPropertyName("expiredAt")]
+    public long? ExpiredAt { get; set; }
+
     [JsonPropertyName("status")]
     public PaymentLinkStatus Status { get; set; }
 
