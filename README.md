@@ -4,7 +4,7 @@
 
 The payOS .NET library provides convenient access to the payOS Merchant API from applications written in C#.
 
-To learn how to use payOS Merchant API, checkout our [API Reference](https://payos.vn/docs/api/) and [Documentation](https://payos.vn/docs/). We also have some examples in the [Examples](PayOS.Examples/) directory.
+To learn how to use payOS Merchant API, checkout our [API Reference](https://payos.vn/docs/api/) and [Documentation](https://payos.vn/docs/). We also have some examples in the [Examples](./Examples/) directory.
 
 ## Requirements
 
