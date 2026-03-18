@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.0 (2026-03-18)
+
+### Features
+
+- **payment-requests**: validate `orderCode` against the SDK max safe number before signing or calling payment request and invoice endpoints
+
+### Refactoring
+
+- **invoices**: remove the unused `requestOptions` parameter from `SaveToFileAsync` and `SaveToDirectoryAsync`
+
+### Documentation
+
+- **readme**: correct the examples link path
+
 ## 2.0.1 (2025-10-29)
 
 ### Documentation
