@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
+using PayOS.Internal;
 using PayOS.Models;
 using PayOS.Models.V2.PaymentRequests;
 
@@ -29,6 +30,8 @@ public class PaymentRequests(PayOSClient client) : ApiResource(client)
         CreatePaymentLinkRequest paymentData,
         RequestOptions<CreatePaymentLinkRequest>? requestOptions = null)
     {
+        MaxSafeNumberValidator.EnsureOrderCodeWithinMaxSafeNumber(paymentData.OrderCode, nameof(paymentData.OrderCode));
+
         var signatureOptions = new SignatureOptions
         {
             Request = RequestSignatureTypes.CreatePaymentLink,
@@ -90,6 +93,7 @@ public class PaymentRequests(PayOSClient client) : ApiResource(client)
         long orderCode,
         RequestOptions? requestOptions = null)
     {
+        MaxSafeNumberValidator.EnsureOrderCodeWithinMaxSafeNumber(orderCode);
         return await GetAsync(orderCode.ToString(), requestOptions);
     }
 
@@ -142,6 +146,7 @@ public class PaymentRequests(PayOSClient client) : ApiResource(client)
         string? cancellationReason = null,
         RequestOptions<CancelPaymentLinkRequest>? requestOptions = null)
     {
+        MaxSafeNumberValidator.EnsureOrderCodeWithinMaxSafeNumber(orderCode);
         return await CancelAsync(orderCode.ToString(), cancellationReason, requestOptions);
     }
 }

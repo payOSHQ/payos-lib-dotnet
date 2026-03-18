@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 
+using PayOS.Internal;
 using PayOS.Models;
 using PayOS.Models.V2.PaymentRequests.Invoices;
 
@@ -50,6 +51,7 @@ public class Invoices(PayOSClient client) : ApiResource(client)
         long orderCode,
         RequestOptions? requestOptions = null)
     {
+        MaxSafeNumberValidator.EnsureOrderCodeWithinMaxSafeNumber(orderCode);
         return await GetAsync(orderCode.ToString(), requestOptions);
     }
 
@@ -83,6 +85,7 @@ public class Invoices(PayOSClient client) : ApiResource(client)
         long orderCode,
         RequestOptions? requestOptions = null)
     {
+        MaxSafeNumberValidator.EnsureOrderCodeWithinMaxSafeNumber(orderCode);
         return await DownloadAsync(invoiceId, orderCode.ToString(), requestOptions);
     }
 }
