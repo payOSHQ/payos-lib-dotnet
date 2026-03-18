@@ -72,9 +72,8 @@ public class FileDownloadResponse : IDisposable
     /// Save the file content to the specified path
     /// </summary>
     /// <param name="filePath">The path where the file should be saved</param>
-    /// <param name="requestOptions">Request options</param>
     /// <returns>The number of bytes written to the file</returns>
-    public async Task<long> SaveToFileAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<long> SaveToFileAsync(string filePath)
     {
         if (Content == null)
             throw new InvalidOperationException("No content available to save");
@@ -101,14 +100,13 @@ public class FileDownloadResponse : IDisposable
     /// </summary>
     /// <param name="directory">The directory where the file should be saved (optional, defaults to current directory)</param>
     /// <param name="defaultFileName">Default filename</param>
-    /// <param name="requestOptions">Request options</param>
     /// <returns>A tuple containing the full file path and the number of bytes written</returns>
-    public async Task<(string FilePath, long BytesWritten)> SaveToDirectoryAsync(string? directory = null, string? defaultFileName = null, CancellationToken cancellationToken = default)
+    public async Task<(string FilePath, long BytesWritten)> SaveToDirectoryAsync(string? directory = null, string? defaultFileName = null)
     {
         var fileName = defaultFileName ?? FileName ?? "download";
         var fullPath = string.IsNullOrEmpty(directory) ? fileName : Path.Combine(directory, fileName);
 
-        var bytesWritten = await SaveToFileAsync(fullPath, cancellationToken);
+        var bytesWritten = await SaveToFileAsync(fullPath);
         return (fullPath, bytesWritten);
     }
 
