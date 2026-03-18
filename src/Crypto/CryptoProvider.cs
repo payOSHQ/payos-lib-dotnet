@@ -5,6 +5,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
+using PayOS.Internal;
+
 namespace PayOS.Crypto;
 
 /// <summary>
@@ -100,6 +102,8 @@ public class CryptoProvider
             var description = jsonElement.GetProperty("description").GetString() ?? "";
             var orderCode = jsonElement.GetProperty("orderCode").GetInt64();
             var returnUrl = jsonElement.GetProperty("returnUrl").GetString() ?? "";
+
+            MaxSafeNumberValidator.EnsureOrderCodeWithinMaxSafeNumber(orderCode);
 
             var dataStr = $"amount={amount}&cancelUrl={cancelUrl}&description={description}&orderCode={orderCode}&returnUrl={returnUrl}";
             return CreateHmac("SHA256", key, dataStr);
