@@ -467,23 +467,23 @@ public class PayOSClient : IDisposable
         string? responseSignature = responseSignatureType switch
         {
             ResponseSignatureTypes.Body => apiResponse.Signature,
-            ResponseSignatureTypes.Header => httpResponse.Headers.GetValues("x-signature")?.FirstOrDefault(),
+            ResponseSignatureTypes.Header => httpResponse.Headers.TryGetValues("x-signature", out var values) ? values.FirstOrDefault() : null,
             _ => throw new InvalidSignatureException($"Invalid response signature type: {responseSignatureType}")
         };
 
-        if (!string.IsNullOrEmpty(responseSignature) && apiResponse.Data != null)
-        {
-            var expectedSignature = responseSignatureType switch
-            {
-                ResponseSignatureTypes.Body => Crypto.CreateSignatureFromObject(apiResponse.Data, ChecksumKey),
-                ResponseSignatureTypes.Header => Crypto.CreateSignature(ChecksumKey, apiResponse.Data),
-                _ => throw new InvalidSignatureException($"Invalid response signature type: {responseSignatureType}")
-            };
+        if (apiResponse.Data == null) return;
+        if (string.IsNullOrEmpty(responseSignature)) throw new InvalidSignatureException("Missing response signature");
 
-            if (responseSignature != expectedSignature)
-            {
-                throw new InvalidSignatureException("Data integrity check failed");
-            }
+        var expectedSignature = responseSignatureType switch
+        {
+            ResponseSignatureTypes.Body => Crypto.CreateSignatureFromObject(apiResponse.Data, ChecksumKey),
+            ResponseSignatureTypes.Header => Crypto.CreateSignature(ChecksumKey, apiResponse.Data),
+            _ => throw new InvalidSignatureException($"Invalid response signature type: {responseSignatureType}")
+        };
+
+        if (string.IsNullOrEmpty(expectedSignature) || !WebhookValidation.ConstantTimeEquals(responseSignature, expectedSignature))
+        {
+            throw new InvalidSignatureException("Data integrity check failed");
         }
     }
 

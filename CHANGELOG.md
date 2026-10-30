@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.1 (2026-10-30)
+
+### Bug Fixes
+
+- **webhooks:** add VerifyAsync(string) raw-body overload with strict data validation; value checks on typed VerifyAsync
+- **client:** fail closed when a signed response is missing its signature; constant-time comparison
+
 ## 2.1.0 (2026-03-18)
 
 ### Features

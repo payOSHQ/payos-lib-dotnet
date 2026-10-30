@@ -77,7 +77,14 @@ You can register an endpoint to receive the payment webhook.
 var confirmResult = await client.Webhooks.ConfirmAsync("https://your-url.com/payos-webhook");
 ```
 
-Then use `Webhooks.VerifyAsync()` to verify and receive webhook data.
+Then use `Webhooks.VerifyAsync()` to verify and receive webhook data. The recommended form passes the raw request body string, so the data is validated exactly as payOS sent it:
+
+```csharp
+// rawBodyString: the unmodified request body, e.g. read from Request.Body
+var webhookData = await payOS.Webhooks.VerifyAsync(rawBodyString);
+```
+
+If you already have a deserialized `Webhook` object, you can verify it directly:
 
 ```csharp
 var webhookData = await client.Webhooks.VerifyAsync(new Webhook
