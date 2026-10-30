@@ -4,8 +4,8 @@
 
 ### Bug Fixes
 
-- **webhooks:** add VerifyAsync(string) raw-body overload with strict data validation; value checks on typed VerifyAsync
-- **client:** fail closed when a signed response is missing its signature; constant-time comparison
+- **webhooks:** add VerifyAsync(string) raw-body overload with strict data validation; value checks on typed VerifyAsync ([GHSA-2wmq-932c-mf92](https://github.com/payOSHQ/payos-lib-dotnet/security/advisories/GHSA-2wmq-932c-mf92))
+- **client:** fail closed when a signed response is missing its signature; constant-time comparison ([GHSA-pmp4-56f8-xwjc](https://github.com/payOSHQ/payos-lib-dotnet/security/advisories/GHSA-pmp4-56f8-xwjc))
 
 ## 2.1.0 (2026-03-18)
 
