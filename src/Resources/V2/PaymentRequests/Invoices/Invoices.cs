@@ -36,7 +36,7 @@ public class Invoices(PayOSClient client) : ApiResource(client)
             CancellationToken = requestOptions?.CancellationToken ?? default
         };
         return await _client.GetAsync<InvoicesInfo>(
-            $"/v2/payment-requests/{paymentLinkId}/invoices",
+            $"/v2/payment-requests/{PathSegment.Encode(nameof(paymentLinkId), paymentLinkId)}/invoices",
             finalRequestOptions
         );
     }
@@ -68,7 +68,7 @@ public class Invoices(PayOSClient client) : ApiResource(client)
         RequestOptions? requestOptions = null)
     {
         return await _client.DownloadFileAsync(
-            $"/v2/payment-requests/{paymentLinkId}/invoices/{invoiceId}/download",
+            $"/v2/payment-requests/{PathSegment.Encode(nameof(paymentLinkId), paymentLinkId)}/invoices/{PathSegment.Encode(nameof(invoiceId), invoiceId)}/download",
             requestOptions ?? new RequestOptions()
         );
     }

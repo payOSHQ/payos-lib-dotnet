@@ -92,7 +92,7 @@ public class Payouts(PayOSClient client) : ApiResource(client)
             CancellationToken = requestOptions?.CancellationToken ?? default
         };
         return await _client.GetAsync<Payout>(
-            $"/v1/payouts/{payoutId}",
+            $"/v1/payouts/{PathSegment.Encode(nameof(payoutId), payoutId)}",
             finalRequestOptions
         );
     }

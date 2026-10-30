@@ -78,7 +78,7 @@ public class PaymentRequests(PayOSClient client) : ApiResource(client)
             CancellationToken = requestOptions?.CancellationToken ?? default
         };
         return await _client.GetAsync<PaymentLink>(
-            $"/v2/payment-requests/{idOrOrderCode}",
+            $"/v2/payment-requests/{PathSegment.Encode(nameof(idOrOrderCode), idOrOrderCode)}",
             finalRequestOptions
         );
     }
@@ -129,7 +129,7 @@ public class PaymentRequests(PayOSClient client) : ApiResource(client)
             CancellationToken = requestOptions?.CancellationToken ?? default
         };
         return await _client.PostAsync<PaymentLink, CancelPaymentLinkRequest>(
-            $"/v2/payment-requests/{idOrOrderCode}/cancel",
+            $"/v2/payment-requests/{PathSegment.Encode(nameof(idOrOrderCode), idOrOrderCode)}/cancel",
             finalRequestOptions
         );
     }

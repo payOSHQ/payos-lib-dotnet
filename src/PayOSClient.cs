@@ -83,7 +83,8 @@ public class PayOSClient : IDisposable
         }
         else
         {
-            _httpClient = new HttpClient();
+            // Redirects are followed by SafeRedirectHandler so credentials never leave the original origin.
+            _httpClient = new HttpClient(new SafeRedirectHandler(new HttpClientHandler { AllowAutoRedirect = false }));
             _disposeHttpClient = true;
         }
 
@@ -448,6 +449,11 @@ public class PayOSClient : IDisposable
 
             if (signatureOptions?.Response != null && apiResponse.Data != null)
             {
+                if (signatureOptions.Response == ResponseSignatureTypes.Body)
+                {
+                    ResponseDataValidator.ValidateResponseContent(responseContent);
+                }
+
                 VerifyResponseSignature(apiResponse, response, signatureOptions.Response);
             }
 
