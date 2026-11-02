@@ -15,10 +15,10 @@ namespace PayOS.Internal;
 /// </summary>
 internal static class ResponseDataValidator
 {
-    // A "&key=" sequence inside a value is what lets the unencoded signed string be re-split.
-    private static readonly Regex SmugglingPattern = new("&[A-Za-z0-9_]+=", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    // A "&key=" sequence inside a value would let the unencoded signed string be split into other fields.
+    private static readonly Regex KeyDelimiterPattern = new("&[A-Za-z0-9_]+=", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    private static readonly Regex KeyPattern = new("^[A-Za-z0-9_]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex KeyPattern = new(@"\A[A-Za-z0-9_]+\z", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static InvalidSignatureException Invalid(string reason) => new($"Invalid response data: {reason}");
 
@@ -95,7 +95,7 @@ internal static class ResponseDataValidator
                 }
                 break;
             case JsonValueKind.String:
-                if (SmugglingPattern.IsMatch(value.GetString() ?? string.Empty))
+                if (KeyDelimiterPattern.IsMatch(value.GetString() ?? string.Empty))
                     throw Invalid($"\"{path}\" must not contain a \"&key=\" sequence");
                 break;
             default:

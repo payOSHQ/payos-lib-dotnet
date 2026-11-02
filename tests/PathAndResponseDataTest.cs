@@ -260,6 +260,8 @@ public class PathAndResponseDataTest
         { PaymentLinkData(extraField: ",\"bad-key\":1"), "unsupported key \"bad-key\"" },
         { PaymentLinkData(extraField: ",\"__proto__\":1"), "unsupported key \"__proto__\"" },
         { PaymentLinkData(extraTransactionField: ",\"a b\":1"), "unsupported key \"transactions[0].a b\"" },
+        { PaymentLinkData(extraField: ",\"extra\\n\":1"), "unsupported key \"extra\n\"" },
+        { PaymentLinkData(extraTransactionField: ",\"memo\\n\":1"), "unsupported key \"transactions[0].memo\n\"" },
         { PaymentLinkData(extraField: ",\"extra\":{\"a\":1}"), "\"extra\" has an unsupported type" },
         { PaymentLinkData(extraField: ",\"extra\":[[1]]"), "\"extra[0]\" has an unsupported type" },
         { PaymentLinkData(extraTransactionField: ",\"meta\":{\"a\":1}"), "\"transactions[0].meta\" has an unsupported type" },

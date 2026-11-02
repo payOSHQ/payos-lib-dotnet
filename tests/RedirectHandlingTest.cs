@@ -37,7 +37,7 @@ public sealed class RedirectHandlingTest : IDisposable
         _other.Dispose();
     }
 
-    private sealed record Reply(int Status, string? Location = null, string Body = "");
+    private sealed record Reply(int Status, string? Location = null, string Body = "", string? SetCookie = null);
 
     private sealed record RecordedRequest(string Method, string Host, string Path, Dictionary<string, string> Headers, string Body);
 
@@ -104,6 +104,10 @@ public sealed class RedirectHandlingTest : IDisposable
                 {
                     response.RedirectLocation = reply.Location;
                 }
+                if (reply.SetCookie != null)
+                {
+                    response.Headers.Add("Set-Cookie", reply.SetCookie);
+                }
                 var bytes = Encoding.UTF8.GetBytes(reply.Body);
                 response.ContentType = "application/json";
                 response.ContentLength64 = bytes.Length;
@@ -124,15 +128,15 @@ public sealed class RedirectHandlingTest : IDisposable
         return $"{{\"code\":\"00\",\"desc\":\"success\",\"data\":{data},\"signature\":\"{signature}\"}}";
     }
 
-    private PayOSClient CreateClient(HttpClient? httpClient = null) =>
-        new(new PayOSOptions
+    private PayOSClient CreateClient(HttpClient? httpClient = null, bool defaultRetries = false)
+    {
+        var options = new PayOSOptions
         {
             ClientId = "client-id",
             ApiKey = "api-key",
             ChecksumKey = ChecksumKey,
             PartnerCode = "partner-code",
             BaseUrl = _origin.Url(string.Empty),
-            MaxRetries = 0,
             LogLevel = Microsoft.Extensions.Logging.LogLevel.None,
             HttpClient = httpClient,
             DefaultHeaders = new Dictionary<string, string>
@@ -141,7 +145,13 @@ public sealed class RedirectHandlingTest : IDisposable
                 ["cookie"] = "session=abc",
                 ["proxy-authorization"] = "Basic cHJveHk6cHJveHk="
             }
-        });
+        };
+        if (!defaultRetries)
+        {
+            options.MaxRetries = 0;
+        }
+        return new PayOSClient(options);
+    }
 
     private static void AssertHasCredentials(RecordedRequest request)
     {
@@ -223,6 +233,58 @@ public sealed class RedirectHandlingTest : IDisposable
         AssertHasNoCredentials(originRequests[1]);
     }
 
+    [Fact]
+    public async Task SameOriginRedirectSendsCookieSetByRedirectResponse()
+    {
+        _origin.Route(StartPath, new Reply(302, "/final", SetCookie: "sid=1; Path=/"));
+        _origin.Route("/final", new Reply(200, Body: SignedPaymentLinkBody));
+
+        await CreateClient().PaymentRequests.GetAsync(PaymentLinkId);
+
+        var requests = _origin.Requests.ToArray();
+        Assert.Equal(new[] { StartPath, "/final" }, requests.Select(r => r.Path));
+        Assert.Equal("session=abc", requests[0].Headers["cookie"]);
+        Assert.Equal("session=abc; sid=1", requests[1].Headers["cookie"]);
+    }
+
+    [Fact]
+    public async Task StoredCookiesAreSentToOriginButNotAfterChainLeavesIt()
+    {
+        // Both listeners are on 127.0.0.1 and cookies ignore the port, so the jar alone would match the other origin.
+        _origin.Route(StartPath, new Reply(200, Body: SignedPaymentLinkBody, SetCookie: "sid=1; Path=/"));
+        var client = CreateClient();
+        await client.PaymentRequests.GetAsync(PaymentLinkId);
+
+        _origin.Route(StartPath, new Reply(302, _other.Url("/hop")));
+        _other.Route("/hop", new Reply(302, _origin.Url("/final")));
+        _origin.Route("/final", new Reply(200, Body: SignedPaymentLinkBody));
+        await client.PaymentRequests.GetAsync(PaymentLinkId);
+
+        var originRequests = _origin.Requests.ToArray();
+        Assert.Equal(new[] { StartPath, StartPath, "/final" }, originRequests.Select(r => r.Path));
+        Assert.Equal("session=abc; sid=1", originRequests[1].Headers["cookie"]);
+        AssertHasNoCredentials(Assert.Single(_other.Requests));
+        AssertHasNoCredentials(originRequests[2]);
+    }
+
+    [Theory]
+    [InlineData(300)]
+    [InlineData(304)]
+    [InlineData(305)]
+    [InlineData(306)]
+    [InlineData(399)]
+    public async Task OtherRedirectStatusesAreNotFollowed(int status)
+    {
+        _origin.Route(StartPath, new Reply(status, _other.Url("/final")));
+        _other.Route("/final", new Reply(200, Body: SignedPaymentLinkBody));
+
+        var ex = await Assert.ThrowsAsync<ApiException>(() => CreateClient(defaultRetries: true).PaymentRequests.GetAsync(PaymentLinkId));
+
+        Assert.Equal(status, ex.StatusCode);
+        Assert.Single(_origin.Requests);
+        Assert.Empty(_other.Requests);
+    }
+
     [Theory]
     [InlineData(301, "GET")]
     [InlineData(302, "GET")]
@@ -271,9 +333,9 @@ public sealed class RedirectHandlingTest : IDisposable
         Assert.All(_origin.Requests, r => Assert.Equal("GET", r.Method));
     }
 
-    private void RouteRedirectChain(int redirects)
+    private void RouteRedirectChain(int redirects, string startPath = StartPath)
     {
-        var path = StartPath;
+        var path = startPath;
         for (var i = 1; i <= redirects; i++)
         {
             var next = $"/hop{i}";
@@ -295,11 +357,23 @@ public sealed class RedirectHandlingTest : IDisposable
     }
 
     [Fact]
-    public async Task MoreThanFiveRedirectsFail()
+    public async Task MoreThanFiveRedirectsFailWithoutRetry()
     {
         RouteRedirectChain(6);
 
-        var ex = await Assert.ThrowsAsync<PayOSException>(() => CreateClient().PaymentRequests.GetAsync(PaymentLinkId));
+        var ex = await Assert.ThrowsAsync<PayOSException>(() => CreateClient(defaultRetries: true).PaymentRequests.GetAsync(PaymentLinkId));
+
+        Assert.Equal("Too many redirects (more than 5)", ex.Message);
+        Assert.Equal(6, _origin.Requests.Count);
+    }
+
+    [Fact]
+    public async Task MoreThanFiveRedirectsFailDownloadWithoutRetry()
+    {
+        RouteRedirectChain(6, StartPath + "/invoices/inv_1/download");
+
+        var ex = await Assert.ThrowsAsync<PayOSException>(
+            () => CreateClient(defaultRetries: true).PaymentRequests.Invoices.DownloadAsync("inv_1", PaymentLinkId));
 
         Assert.Equal("Too many redirects (more than 5)", ex.Message);
         Assert.Equal(6, _origin.Requests.Count);

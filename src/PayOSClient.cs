@@ -83,8 +83,8 @@ public class PayOSClient : IDisposable
         }
         else
         {
-            // Redirects are followed by SafeRedirectHandler so credentials never leave the original origin.
-            _httpClient = new HttpClient(new SafeRedirectHandler(new HttpClientHandler { AllowAutoRedirect = false }));
+            // SafeRedirectHandler follows redirects and keeps cookies itself so credentials never leave the original origin.
+            _httpClient = new HttpClient(new SafeRedirectHandler(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }));
             _disposeHttpClient = true;
         }
 
