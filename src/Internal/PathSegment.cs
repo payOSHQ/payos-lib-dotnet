@@ -32,7 +32,7 @@ internal static class PathSegment
 
     public static string Encode(string name, long value)
     {
-        if (value < 0 || value > 9007199254740991L)
+        if (value < 0 || value > MaxSafeNumberValidator.MaxSafeNumber)
         {
             throw new PayOSException($"{name} must be a non-negative safe integer");
         }

@@ -6,6 +6,7 @@
 
 - **webhooks:** add VerifyAsync(string) raw-body overload with strict data validation; value checks on typed VerifyAsync ([GHSA-2wmq-932c-mf92](https://github.com/payOSHQ/payos-lib-dotnet/security/advisories/GHSA-2wmq-932c-mf92))
 - **client:** fail closed when a signed response is missing its signature; constant-time comparison ([GHSA-pmp4-56f8-xwjc](https://github.com/payOSHQ/payos-lib-dotnet/security/advisories/GHSA-pmp4-56f8-xwjc))
+- **client:** percent-encode id/orderCode/invoiceId path segments and reject empty, dot-segment, negative and unsafe-integer values; drop `x-api-key`/`x-client-id`/`x-partner-code`/`authorization`/`cookie` headers when a redirect leaves the API origin (default HttpClient; max 5 redirects); validate body-signed response data before signature verification
 
 ## 2.1.0 (2026-03-18)
 

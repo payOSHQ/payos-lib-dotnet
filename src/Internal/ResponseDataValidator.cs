@@ -85,7 +85,7 @@ internal static class ResponseDataValidator
             case JsonValueKind.Number:
                 if (value.TryGetInt64(out var n))
                 {
-                    if (Math.Abs(n) > MaxSafeNumberValidator.MaxSafeNumber)
+                    if (n > MaxSafeNumberValidator.MaxSafeNumber || n < -MaxSafeNumberValidator.MaxSafeNumber)
                         throw Invalid($"\"{path}\" must be a safe integer");
                 }
                 else if (!value.TryGetDouble(out var d) || double.IsNaN(d) || double.IsInfinity(d) ||

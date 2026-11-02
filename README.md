@@ -174,10 +174,10 @@ var client = new PayOSClient(new PayOSOptions
 
 ### Custom HttpClient
 
-You can provide a custom HttpClient instance:
+You can provide a custom HttpClient instance. A custom HttpClient follows redirects with its own handler, which forwards the `x-api-key` and `x-client-id` headers to the redirect target, so disable automatic redirects to keep your credentials from leaving the API origin (the default client already drops them on cross-origin redirects):
 
 ```csharp
-var httpClient = new HttpClient();
+var httpClient = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
 // Configure your HttpClient as needed
 
 var client = new PayOSClient(new PayOSOptions

@@ -1,21 +1,26 @@
 using System;
-using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
+using PayOS.Exceptions;
+
 namespace PayOS.Internal;
 
 /// <summary>
-/// Follows redirects manually so that the payOS credential headers (x-api-key, x-client-id, x-partner-code)
-/// are never forwarded to another origin. The platform handlers only drop <c>Authorization</c> on cross-host
-/// redirects, so these custom headers would otherwise be sent to the new host.
+/// Follows redirects manually so that the merchant credentials (x-api-key, x-client-id, x-partner-code,
+/// authorization, cookie, proxy-authorization) are never forwarded to another origin. The platform handlers
+/// only drop <c>Authorization</c> on redirects, so the custom payOS headers would otherwise be sent to the new host.
 /// The inner handler must have automatic redirects disabled.
 /// </summary>
 internal sealed class SafeRedirectHandler : DelegatingHandler
 {
-    private const int MaxRedirects = 10;
-    private static readonly string[] SensitiveHeaders = { "x-api-key", "x-client-id", "x-partner-code" };
+    internal const int MaxRedirects = 5;
+
+    private static readonly string[] SensitiveHeaders =
+    {
+        "x-api-key", "x-client-id", "x-partner-code", "authorization", "cookie", "proxy-authorization"
+    };
 
     public SafeRedirectHandler(HttpMessageHandler inner) : base(inner)
     {
@@ -23,38 +28,37 @@ internal sealed class SafeRedirectHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var origin = request.RequestUri;
+        // Buffer the body once so it can be replayed on 307/308 redirects.
+        byte[]? body = null;
+        if (request.Content != null)
+        {
+            body = await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+        }
+
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        for (var hop = 0; hop < MaxRedirects; hop++)
+        for (var hop = 0; ; hop++)
         {
+            var status = (int)response.StatusCode;
             var location = response.Headers.Location;
-            if (!IsRedirect(response.StatusCode) || location == null || origin == null)
+            if (status < 300 || status >= 400 || location == null || request.RequestUri == null)
             {
                 return response;
             }
-
-            var target = location.IsAbsoluteUri ? location : new Uri(request.RequestUri!, location);
-            var method = request.Method;
-            var content = request.Content;
-            if (response.StatusCode is HttpStatusCode.MovedPermanently or HttpStatusCode.Found or HttpStatusCode.SeeOther)
+            if (hop >= MaxRedirects)
             {
-                if (method != HttpMethod.Head)
-                {
-                    method = HttpMethod.Get;
-                }
-                content = null;
-            }
-            else if (content != null)
-            {
-                // 307/308 with a body: it cannot be replayed safely; hand the redirect response to the caller.
-                return response;
+                response.Dispose();
+                throw new PayOSException($"Too many redirects (more than {MaxRedirects})");
             }
 
-            var next = new HttpRequestMessage(method, target) { Version = request.Version, Content = content };
-            var sameOrigin = string.Equals(origin.Scheme, target.Scheme, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(origin.Host, target.Host, StringComparison.OrdinalIgnoreCase)
-                && origin.Port == target.Port;
+            var current = request.RequestUri;
+            var target = location.IsAbsoluteUri ? location : new Uri(current, location);
+            var switchToGet = status == 303 || ((status == 301 || status == 302) && request.Method == HttpMethod.Post);
+            var sameOrigin = string.Equals(current.Scheme, target.Scheme, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(current.Host, target.Host, StringComparison.OrdinalIgnoreCase)
+                && current.Port == target.Port;
+
+            var next = new HttpRequestMessage(switchToGet ? HttpMethod.Get : request.Method, target) { Version = request.Version };
             foreach (var header in request.Headers)
             {
                 if (!sameOrigin && Array.Exists(SensitiveHeaders, h => string.Equals(h, header.Key, StringComparison.OrdinalIgnoreCase)))
@@ -64,15 +68,28 @@ internal sealed class SafeRedirectHandler : DelegatingHandler
                 next.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
+            if (switchToGet)
+            {
+                body = null;
+            }
+            else if (body != null && request.Content != null)
+            {
+                var content = new ByteArrayContent(body);
+                foreach (var header in request.Content.Headers)
+                {
+                    content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
+                next.Content = content;
+            }
+
             response.Dispose();
+            if (hop > 0)
+            {
+                // Intermediate requests are owned here; the original one is owned by the caller.
+                request.Dispose();
+            }
             request = next;
             response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
-
-        return response;
     }
-
-    private static bool IsRedirect(HttpStatusCode code) =>
-        code == HttpStatusCode.MovedPermanently || code == HttpStatusCode.Found || code == HttpStatusCode.SeeOther
-        || code == HttpStatusCode.TemporaryRedirect || (int)code == 308;
 }
