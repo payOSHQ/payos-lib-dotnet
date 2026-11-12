@@ -69,7 +69,12 @@ public class PayOSOptions
 
     /// <summary>
     /// Custom HttpClient instance
-    /// If not provided, a default HttpClient will be created
+    /// If not provided, a default HttpClient will be created that follows redirects itself and drops the
+    /// credential headers when a redirect leaves the API origin.
+    /// A custom HttpClient follows redirects according to its own handler, which forwards x-api-key,
+    /// x-client-id and x-partner-code to the redirect target; create it with automatic redirects disabled
+    /// (e.g. <c>new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })</c>) to keep credentials
+    /// from leaving the API origin.
     /// </summary>
     public HttpClient? HttpClient { get; set; }
 

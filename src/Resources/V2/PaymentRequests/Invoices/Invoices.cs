@@ -36,7 +36,7 @@ public class Invoices(PayOSClient client) : ApiResource(client)
             CancellationToken = requestOptions?.CancellationToken ?? default
         };
         return await _client.GetAsync<InvoicesInfo>(
-            $"/v2/payment-requests/{paymentLinkId}/invoices",
+            $"/v2/payment-requests/{PathSegment.Encode(nameof(paymentLinkId), paymentLinkId)}/invoices",
             finalRequestOptions
         );
     }
@@ -51,8 +51,7 @@ public class Invoices(PayOSClient client) : ApiResource(client)
         long orderCode,
         RequestOptions? requestOptions = null)
     {
-        MaxSafeNumberValidator.EnsureOrderCodeWithinMaxSafeNumber(orderCode);
-        return await GetAsync(orderCode.ToString(), requestOptions);
+        return await GetAsync(PathSegment.Encode(nameof(orderCode), orderCode), requestOptions);
     }
 
     /// <summary>
@@ -68,7 +67,7 @@ public class Invoices(PayOSClient client) : ApiResource(client)
         RequestOptions? requestOptions = null)
     {
         return await _client.DownloadFileAsync(
-            $"/v2/payment-requests/{paymentLinkId}/invoices/{invoiceId}/download",
+            $"/v2/payment-requests/{PathSegment.Encode(nameof(paymentLinkId), paymentLinkId)}/invoices/{PathSegment.Encode(nameof(invoiceId), invoiceId)}/download",
             requestOptions ?? new RequestOptions()
         );
     }
@@ -85,7 +84,6 @@ public class Invoices(PayOSClient client) : ApiResource(client)
         long orderCode,
         RequestOptions? requestOptions = null)
     {
-        MaxSafeNumberValidator.EnsureOrderCodeWithinMaxSafeNumber(orderCode);
-        return await DownloadAsync(invoiceId, orderCode.ToString(), requestOptions);
+        return await DownloadAsync(invoiceId, PathSegment.Encode(nameof(orderCode), orderCode), requestOptions);
     }
 }

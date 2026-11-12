@@ -77,7 +77,14 @@ You can register an endpoint to receive the payment webhook.
 var confirmResult = await client.Webhooks.ConfirmAsync("https://your-url.com/payos-webhook");
 ```
 
-Then use `Webhooks.VerifyAsync()` to verify and receive webhook data.
+Then use `Webhooks.VerifyAsync()` to verify and receive webhook data. The recommended form passes the raw request body string, so the data is validated exactly as payOS sent it:
+
+```csharp
+// rawBodyString: the unmodified request body, e.g. read from Request.Body
+var webhookData = await payOS.Webhooks.VerifyAsync(rawBodyString);
+```
+
+If you already have a deserialized `Webhook` object, you can verify it directly:
 
 ```csharp
 var webhookData = await client.Webhooks.VerifyAsync(new Webhook
@@ -167,10 +174,10 @@ var client = new PayOSClient(new PayOSOptions
 
 ### Custom HttpClient
 
-You can provide a custom HttpClient instance:
+You can provide a custom HttpClient instance. A custom HttpClient follows redirects with its own handler, which forwards the `x-api-key`, `x-client-id` and `x-partner-code` headers to the redirect target, so disable automatic redirects to keep your credentials from leaving the API origin (the default client already drops them on cross-origin redirects):
 
 ```csharp
-var httpClient = new HttpClient();
+var httpClient = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
 // Configure your HttpClient as needed
 
 var client = new PayOSClient(new PayOSOptions

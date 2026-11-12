@@ -78,7 +78,7 @@ public class PaymentRequests(PayOSClient client) : ApiResource(client)
             CancellationToken = requestOptions?.CancellationToken ?? default
         };
         return await _client.GetAsync<PaymentLink>(
-            $"/v2/payment-requests/{idOrOrderCode}",
+            $"/v2/payment-requests/{PathSegment.Encode(nameof(idOrOrderCode), idOrOrderCode)}",
             finalRequestOptions
         );
     }
@@ -93,8 +93,7 @@ public class PaymentRequests(PayOSClient client) : ApiResource(client)
         long orderCode,
         RequestOptions? requestOptions = null)
     {
-        MaxSafeNumberValidator.EnsureOrderCodeWithinMaxSafeNumber(orderCode);
-        return await GetAsync(orderCode.ToString(), requestOptions);
+        return await GetAsync(PathSegment.Encode(nameof(orderCode), orderCode), requestOptions);
     }
 
     /// <summary>
@@ -129,7 +128,7 @@ public class PaymentRequests(PayOSClient client) : ApiResource(client)
             CancellationToken = requestOptions?.CancellationToken ?? default
         };
         return await _client.PostAsync<PaymentLink, CancelPaymentLinkRequest>(
-            $"/v2/payment-requests/{idOrOrderCode}/cancel",
+            $"/v2/payment-requests/{PathSegment.Encode(nameof(idOrOrderCode), idOrOrderCode)}/cancel",
             finalRequestOptions
         );
     }
@@ -146,7 +145,6 @@ public class PaymentRequests(PayOSClient client) : ApiResource(client)
         string? cancellationReason = null,
         RequestOptions<CancelPaymentLinkRequest>? requestOptions = null)
     {
-        MaxSafeNumberValidator.EnsureOrderCodeWithinMaxSafeNumber(orderCode);
-        return await CancelAsync(orderCode.ToString(), cancellationReason, requestOptions);
+        return await CancelAsync(PathSegment.Encode(nameof(orderCode), orderCode), cancellationReason, requestOptions);
     }
 }
